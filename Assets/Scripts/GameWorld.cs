@@ -18,15 +18,18 @@ public class GameWorld : MonoBehaviour
     #region Private Members
 
     private Replay _replay;
+    private Replay.Snapshot _snapshot;
     private InputHandler _input;
     private Controller _heroController;
     
     private uint _gameTick;
+    private uint _replayGameTick;
     private float _deltaGameTime;
 
     [SerializeField]
     int _fixedFPS;
 
+    int _time;
     #endregion
 
     void Start () 
@@ -37,26 +40,31 @@ public class GameWorld : MonoBehaviour
 
         // creating a replay object
         _replay = new Replay();
-        _replay.EnableRecording();
-
+       
         // creating an input handler
         _input = new InputHandler();
 
         // constant delta time since last frame
-        _deltaGameTime = 1.0f / 50;
+        _deltaGameTime = 1.0f / 30.0f;
 
         StartPlaying();
+    }
+
+    void Update()
+    {
     }
 
     #region Playing Methods
     public void StartPlaying()
     {
+        print("Playing!");
         _gameMode = GameMode.Playing;
         _gameTick = 0;
-        StopCoroutine(Replaying());
+        _replay.EnableRecording();
         _heroController.Reset();
-        //InvokeRepeating("ReallyFixedUpdate", 0.0f, _deltaGameTime);
+        InvokeRepeating("ReallyFixedUpdate", 0.0f, _deltaGameTime);
         //InvokeRepeating("PrintGameTick", 0.0f, 1.0f);
+        _time = Time.frameCount;
     }
 
     void PrintGameTick()
@@ -64,9 +72,8 @@ public class GameWorld : MonoBehaviour
         print("GameTick: " + _gameTick.ToString());
     }
 
-
     // using a fixed update to make our update deterministic
-	void FixedUpdate () 
+	void ReallyFixedUpdate () 
     {
         if (_gameMode == GameMode.Playing)
         {
@@ -90,11 +97,17 @@ public class GameWorld : MonoBehaviour
         // prevents start a replay during another replay
         if (_gameMode == GameMode.Playing)
         {
+            int delta = Time.frameCount - _time;
+            print("FramePassed " + delta.ToString() + " started: " + _time.ToString() + " ended: " + Time.frameCount);
+            Debug.Log(_heroController.transform.position);
             _gameMode = GameMode.Replaying;
             _replay.DisableRecording();
-            //CancelInvoke("ReallyFixedUpdate");
+            CancelInvoke("ReallyFixedUpdate");
             _heroController.Reset();
-            StartCoroutine(Replaying());
+            _snapshot = _replay.GetNextSnapshot();
+            _replayGameTick = 0;
+            InvokeRepeating("ReallyFixedReplay", 0, _deltaGameTime);
+            _time = Time.frameCount;
         }
     }
 
@@ -108,18 +121,28 @@ public class GameWorld : MonoBehaviour
         }
     }
 
-    IEnumerator Replaying()
+    void ReallyFixedReplay()
     {
-        Replay.Snapshot snapshot = _replay.GetNextSnapshot();
-        while(snapshot != null)
+        if (_gameMode == GameMode.Replaying)
         {
-            // wait until next command
-            yield return new WaitForSeconds(snapshot.tick * _deltaGameTime);
-            _heroController.Perform(snapshot.commands);
-            snapshot = _replay.GetNextSnapshot();
+            _replayGameTick++;
+
+            if (_replayGameTick == _snapshot.tick)
+            {
+                uint frameCmd = _snapshot.commands;
+                _heroController.Perform(frameCmd);
+                _snapshot = _replay.GetNextSnapshot();
+                if(_snapshot == null)
+                {
+                    int delta = Time.frameCount - _time;
+                    print("FramePassed " + delta.ToString() + " started: " + _time.ToString() + " ended: " + Time.frameCount);
+                    Debug.Log("Replay ended");
+                    Debug.Log(_heroController.transform.position);
+                    CancelInvoke("ReallyFixedReplay");
+                    Invoke("StartPlaying", 3.0f);
+                }
+            }
         }
-        yield return new WaitForSeconds(3.0f);
-        StartPlaying();
     }
     #endregion
 }

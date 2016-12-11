@@ -43,7 +43,6 @@ public class Replay
     public Snapshot GetNextSnapshot()
     {
         Debug.Assert(!_isRecording, "Replay is in recording mode, stop recording before you consume it.");
-
         Snapshot ss = null;
         if(_snapshots.Count > 0)
             ss = _snapshots.Dequeue();

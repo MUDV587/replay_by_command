@@ -23,19 +23,19 @@ public class InputHandler
         if (Input.GetKey(KeyCode.W))
             frameCmd |= (uint)CommandCode.W;
 
-        if (Input.GetKeyDown(KeyCode.S))
+        if (Input.GetKey(KeyCode.S))
             frameCmd |= (uint)CommandCode.S;
 
-        if (Input.GetKeyDown(KeyCode.A))
+        if (Input.GetKey(KeyCode.A))
             frameCmd |= (uint)CommandCode.A;
 
-        if (Input.GetKeyDown(KeyCode.D))
+        if (Input.GetKey(KeyCode.D))
             frameCmd |= (uint)CommandCode.D;
 
-        if (Input.GetKeyDown(KeyCode.Return))
+        if (Input.GetKey(KeyCode.Return))
             frameCmd |= (uint)CommandCode.RETURN;
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKey(KeyCode.Space))
             frameCmd |= (uint)CommandCode.SPACE;
 
         return frameCmd;
